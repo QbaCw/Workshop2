@@ -17,8 +17,6 @@ public class UserDao {
             ");";
 
 
-   // public static void main(String[] args) {
-
     public static void CreatedDataBase(){
         try (Connection connection = DbUtil.getConnection();
              Statement statement = connection.createStatement()) {
