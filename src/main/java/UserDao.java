@@ -1,7 +1,7 @@
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import org.mindrot.jbcrypt.BCrypt;
+
+import java.sql.*;
+import java.util.Arrays;
 
 public class UserDao {
 
@@ -16,6 +16,15 @@ public class UserDao {
             "password varchar(60) not null\n" +
             ");";
 
+    private static final String CREATE_USER_QUERY = "insert into workshop_2.users(username, email, password) values (?,?,?)";
+
+    private static final String READ_USER_QUERY = "select * from workshop_2.users where id = ?";
+
+    private static final String UPDATE_USER_QUERY = "update workshop_2.users set username = ? , email = ? , password = ? where id = ?;";
+
+    private static final String DELETE_USER_QUERY = "delete from workshop_2.users where id = ?;";
+
+    private static final String FINDALL_USER_QUERY= "select * from workshop_2.users;";
 
     public static void CreatedDataBase(){
         try (Connection connection = DbUtil.getConnection();
@@ -30,5 +39,113 @@ public class UserDao {
             e.printStackTrace();
 
         }
+
+
+
     }
+    public String hashPassword(String password) {
+        return BCrypt.hashpw(password, BCrypt.gensalt());
+    }
+
+    public User create(User user) {
+        try (Connection conn = DbUtil.getConnection()) {
+            PreparedStatement statement =
+                    conn.prepareStatement(CREATE_USER_QUERY, Statement.RETURN_GENERATED_KEYS);
+            statement.setString(1, user.getUserName());
+            statement.setString(2, user.getEmail());
+            statement.setString(3, hashPassword(user.getPassword()));
+            statement.executeUpdate();
+            //Pobieramy wstawiony do bazy identyfikator, a następnie ustawiamy id obiektu user.
+            ResultSet resultSet = statement.getGeneratedKeys();
+            if (resultSet.next()) {
+                user.setId(resultSet.getInt(1));
+
+            }
+            return user;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    public User read (int userId){
+        User readuser= new User();
+        try (Connection conn = DbUtil.getConnection()){
+            try (PreparedStatement statement = conn.prepareStatement(READ_USER_QUERY)) {
+                statement.setInt(1, userId);
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    while (resultSet.next()){
+                        readuser.setId(resultSet.getInt(1));
+                        readuser.setEmail(resultSet.getString(2));
+                        readuser.setUserName(resultSet.getString(3));
+                        readuser.setPassword(resultSet.getString(4));
+                    }
+                    return readuser;
+                }
+            }
+             } catch (SQLException e) {
+                 e.printStackTrace();
+        }
+        return null;
+    }
+    public void update(User user) {
+        try (Connection conn = DbUtil.getConnection()) {
+            PreparedStatement statement = conn.prepareStatement(UPDATE_USER_QUERY);
+            statement.setString(1, user.getUserName());
+            statement.setString(2,user.getEmail());
+            statement.setString(3,hashPassword(user.getPassword()));
+            statement.setInt(4,user.getId());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+
+    }
+    public void delete (int usetId){
+        try (Connection conn = DbUtil.getConnection()) {
+            PreparedStatement statement = conn.prepareStatement(DELETE_USER_QUERY);
+            statement.setInt(1, usetId);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+           e.printStackTrace();
+        }
+    }
+    public User[] findAll(){
+        User[] findUser = new User[0];
+        try (Connection conn = DbUtil.getConnection();
+            Statement statement = conn.createStatement()){
+            try (ResultSet resultSet = statement.executeQuery(FINDALL_USER_QUERY)){
+                while (resultSet.next()){
+                    User nextUser = new User();
+                    nextUser.setId(resultSet.getInt(1));
+                    nextUser.setEmail(resultSet.getString(2));
+                    nextUser.setUserName(resultSet.getString(3));
+                    nextUser.setPassword(resultSet.getString(4));
+                    findUser = addToArray(nextUser,findUser);
+                }
+            }return findUser;
+
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }return null;
+
+    }
+
+
+
+    private User[] addToArray(User u, User[] users) {
+        User[] tmpUsers = Arrays.copyOf(users, users.length + 1); // Tworzymy kopię tablicy powiększoną o 1.
+        tmpUsers[users.length] = u; // Dodajemy obiekt na ostatniej pozycji.
+        return tmpUsers; // Zwracamy nową tablicę.
+    }
+
+
+
 }
+
+
+
+
+
+
