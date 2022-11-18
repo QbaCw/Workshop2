@@ -33,9 +33,9 @@ public class MainDao  {
         UserDao userDao = new UserDao();
         userDao.delete(7);
 
-        UserDao userDAO = new UserDao();
+        UserDao userDao1 = new UserDao();
 
-        User[] result = userDAO.findAll();
+        User[] result = userDao1.findAll();
         System.out.println(Arrays.toString(result));
 
     }
